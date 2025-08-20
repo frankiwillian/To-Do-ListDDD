@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:14
+    container_name: todolist-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: todolist
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - todolist-network
+
+  api:
+    build:
+      context: .
+      dockerfile: TodoList.API/Dockerfile
+    container_name: todolist-api
+    depends_on:
+      - postgres
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Host=postgres;Database=todolist;Username=postgres;Password=postgres
+      - JwtConfig__Secret=sua_chave_secreta_muito_segura_para_jwt_token_2023
+      - JwtConfig__Issuer=TodoListAPI
+      - JwtConfig__Audience=TodoListClient
+      - JwtConfig__ExpirationInMinutes=60
+    ports:
+      - "5000:80"
+    networks:
+      - todolist-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: todolist-frontend
+    depends_on:
+      - api
+    ports:
+      - "3000:80"
+    networks:
+      - todolist-network
+
+networks:
+  todolist-network:
+    driver: bridge
+
+volumes:
+  postgres-data:
